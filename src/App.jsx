@@ -1,8 +1,15 @@
 import { useState, useEffect, Suspense } from "react";
 import { GithubIcon } from "lucide-react";
-import { Button } from "./components/ui/button";
+
 import Loader from "./components/Loader";
 import LoginDialog from "./components/Login-Dialog";
+import { Button } from "./components/Button";
+import { Navbar } from "./components/Navbar";
+import { BackgroundUIContainer } from "./components/BackgroundUIContainer";
+import { NumberTicker } from "./components/NumberTicker";
+
+import { localStorage } from "./lib/storage";
+
 import {
   signup,
   loginUser,
@@ -10,7 +17,6 @@ import {
   logout,
   getUser,
 } from "./lib/auth";
-import { localStorage } from "./lib/storage";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -55,7 +61,7 @@ function App() {
 
   if (deleted) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-destructive animate-in fade-in duration-500">
+      <div className="dark h-screen w-screen flex items-center justify-center bg-destructive animate-in fade-in duration-500 dark">
         <h1 className="text-4xl font-bold text-destructive-foreground">
           Site has been deleted
         </h1>
@@ -67,46 +73,21 @@ function App() {
     return <LoginDialog setLoggedInUser={setLoggedInUser} />;
   }
 
-  if (loggedInUser) {
-    return (
-      <div className="min-h-screen w-screen flex flex-col">
-        <nav className="w-full border-b">
-          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-            <div className="text-2xl font-bold animate-in slide-in-from-left duration-500">
-              Click to Delete
-            </div>
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:opacity-80 transition-opacity animate-in slide-in-from-right duration-500"
-            >
-              <GithubIcon className="h-6 w-6" />
-            </a>
-            <p>
-              {loggedInUser
-                ? `Logged in as ${loggedInUser.name || "Anonymous"}`
-                : "Not logged in"}
-            </p>
-            <button onClick={handleLogout}>Logout</button>
-          </div>
-        </nav>
-
-        <div className="flex-1 flex flex-col items-center justify-center gap-8 animate-in fade-in slide-in-from-bottom duration-700">
-          <h1 className="text-4xl font-bold">Click to Delete</h1>
-          <p className="text-xl">Clicks until deletion: {1000000 - count}</p>
-          <Button
-            onClick={handleClick}
-            variant="destructive"
-            size="lg"
-            className="text-lg hover:animate-pulse"
-          >
-            Click me
-          </Button>
+  return (
+    <BackgroundUIContainer>
+      <Navbar />
+      <div className="flex-1 flex flex-col items-center justify-center gap-8">
+        <h1 className="text-4xl font-bold">Click to Delete</h1>
+        <div className="text-xl flex flex-col items-center gap-2">
+          <div>Current count:</div>
+          <NumberTicker value={count} />
         </div>
+        <Button onClick={handleClick} size="lg" className="text-lg">
+          Click me
+        </Button>
       </div>
-    );
-  }
+    </BackgroundUIContainer>
+  );
 }
 
 export default App;

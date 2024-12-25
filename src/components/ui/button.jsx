@@ -1,8 +1,9 @@
-import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
+import PropTypes from "prop-types";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -31,17 +32,46 @@ const buttonVariants = cva(
       size: "default",
     },
   }
-)
+);
 
-const Button = React.forwardRef(({ className, variant, size, asChild = false, ...props }, ref) => {
-  const Comp = asChild ? Slot : "button"
+const Button = React.forwardRef((props, ref) => {
+  const { className, variant, size, asChild = false, ...otherProps } = props;
+  const Comp = asChild ? Slot : "button";
   return (
-    (<Comp
+    <Comp
       className={cn(buttonVariants({ variant, size, className }))}
       ref={ref}
-      {...props} />)
+      {...otherProps}
+    />
   );
-})
-Button.displayName = "Button"
+});
 
-export { Button, buttonVariants }
+Button.propTypes = {
+  /** Additional CSS classes to apply to the button */
+  className: PropTypes.string,
+  /** The visual style variant of the button */
+  variant: PropTypes.oneOf([
+    "default",
+    "destructive",
+    "outline",
+    "secondary",
+    "ghost",
+    "link",
+  ]),
+  /** The size variant of the button */
+  size: PropTypes.oneOf(["default", "sm", "lg", "icon"]),
+  /** When true, renders the button as a Radix UI Slot */
+  asChild: PropTypes.bool,
+  /** The button's children/content */
+  children: PropTypes.node,
+  /** onClick handler for the button */
+  onClick: PropTypes.func,
+  /** Whether the button is disabled */
+  disabled: PropTypes.bool,
+  /** Type of the button */
+  type: PropTypes.oneOf(["button", "submit", "reset"]),
+};
+
+Button.displayName = "Button";
+
+export { Button, buttonVariants };
