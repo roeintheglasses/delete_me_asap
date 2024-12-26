@@ -1,75 +1,57 @@
-import { useState, useEffect } from "react";
-import { Button } from "./components/ui/button";
+import { useState, useEffect, Suspense } from "react";
 import { GithubIcon } from "lucide-react";
-import { account, ID } from './lib/appwrite';
+import { Button } from "./components/ui/button";
+import Loader from "./components/Loader";
+import LoginDialog from "./components/Login-Dialog";
+import {
+  signup,
+  loginUser,
+  loginAnonymously,
+  logout,
+  getUser,
+} from "./lib/auth";
+import { localStorage } from "./lib/storage";
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [count, setCount] = useState(0);
   const [deleted, setDeleted] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState(null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(false);
 
-  // Check localStorage for authentication status on app load
   useEffect(() => {
-    const savedAuthStatus = localStorage.getItem("isAuthenticated");
-    if (savedAuthStatus === "true") {
-      setIsAuthenticated(true);
-    }
+    getAndSetUserData();
+    return () => {
+      setLoggedInUser(null);
+    };
   }, []);
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    // Replace this with actual authentication logic
-    if (email === "test@example.com" && password === "password") {
-      setIsAuthenticated(true);
-      localStorage.setItem("isAuthenticated", "true"); // Save status in localStorage
-    } else {
-      alert("Invalid credentials");
+  const getAndSetUserData = async () => {
+    setIsPageLoading(true);
+    const user = await getUser();
+    if (user) {
+      setLoggedInUser(user);
     }
+    setIsPageLoading(false);
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem("isAuthenticated"); // Remove status from localStorage
+  const handleLogout = async () => {
+    setIsPageLoading(true);
+    await logout();
+    setLoggedInUser(null);
+    setIsPageLoading(false);
   };
-
-  async function loginUser(email, password) {
-    setLoading(true);
-    try {
-      await account.createEmailPasswordSession(email, password);
-      setLoggedInUser(await account.get());
-    } catch (error) {
-      alert("Login failed: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loginAnonymously() {
-    setLoading(true);
-    try {
-      await account.createAnonymousSession();
-      setLoggedInUser(await account.get());
-      setIsAuthenticated(true);
-    } catch (error) {
-      alert("Anonymous login failed: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   const handleClick = () => {
     const newCount = count + 1;
     setCount(newCount);
-
     if (newCount >= 1000000) {
       setDeleted(true);
     }
   };
+
+  if (isPageLoading) {
+    return <Loader />;
+  }
 
   if (deleted) {
     return (
@@ -81,89 +63,11 @@ function App() {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div>
-        <p>{loggedInUser ? `Logged in as ${loggedInUser.name || 'Anonymous'}` : 'Not logged in'}</p>
-  
-        <form>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-  
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() => loginUser(email, password)}
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-  
-          <button
-            type="button"
-            disabled={loading}
-            onClick={async () => {
-              try {
-                setLoading(true);
-                await account.create(ID.unique(), email, password, name);
-                loginUser(email, password);
-              } catch (error) {
-                alert("Registration failed: " + error.message);
-              } finally {
-                setLoading(false);
-              }
-            }}
-          >
-            {loading ? 'Registering...' : 'Register'}
-          </button>
-  
-          <button
-            type="button"
-            disabled={loading}
-            onClick={async () => {
-              try {
-                setLoading(true);
-                await account.deleteSession('current');
-                setLoggedInUser(null);
-              } catch (error) {
-                alert("Logout failed: " + error.message);
-              } finally {
-                setLoading(false);
-              }
-            }}
-          >
-            {loading ? 'Logging out...' : 'Logout'}
-          </button>
-  
-          <button
-            type="button"
-            disabled={loading}
-            onClick={loginAnonymously}
-          >
-            {loading ? 'Logging in anonymously...' : 'Login Anonymously'}
-          </button>
-        </form>
-      </div>
-    );
-  };
-  
+  if (!loggedInUser) {
+    return <LoginDialog setLoggedInUser={setLoggedInUser} />;
+  }
 
-  if(isAuthenticated){
+  if (loggedInUser) {
     return (
       <div className="min-h-screen w-screen flex flex-col">
         <nav className="w-full border-b">
@@ -179,9 +83,15 @@ function App() {
             >
               <GithubIcon className="h-6 w-6" />
             </a>
+            <p>
+              {loggedInUser
+                ? `Logged in as ${loggedInUser.name || "Anonymous"}`
+                : "Not logged in"}
+            </p>
+            <button onClick={handleLogout}>Logout</button>
           </div>
         </nav>
-  
+
         <div className="flex-1 flex flex-col items-center justify-center gap-8 animate-in fade-in slide-in-from-bottom duration-700">
           <h1 className="text-4xl font-bold">Click to Delete</h1>
           <p className="text-xl">Clicks until deletion: {1000000 - count}</p>
