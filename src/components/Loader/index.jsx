@@ -1,18 +1,34 @@
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 const Loader = ({ className }) => {
+  const spinTransition = {
+    repeat: Infinity,
+    ease: "linear",
+    duration: 1,
+  };
+
+  const pulseTransition = {
+    repeat: Infinity,
+    duration: 1,
+    ease: "easeInOut",
+  };
+
   return (
-    <div className={cn("font-mono text-lg animate-pulse", className)}>
+    <div className={cn("font-mono text-2xl", className)}>
       <div className="flex items-center gap-1">
         <span>[</span>
-        <span className="animate-[pulse_1s_ease-in-out_infinite]">|</span>
-        <span className="animate-[pulse_1s_ease-in-out_0.2s_infinite]">/</span>
-        <span className="animate-[pulse_1s_ease-in-out_0.4s_infinite]">-</span>
-        <span className="animate-[pulse_1s_ease-in-out_0.6s_infinite]">\</span>
+        <motion.span animate={{ rotate: 360 }} transition={spinTransition}>
+          |
+        </motion.span>
         <span>]</span>
-        <span className="ml-2 animate-[pulse_1s_ease-in-out_infinite]">
+        <motion.span
+          className="ml-2"
+          animate={{ opacity: [1, 0.5, 1] }}
+          transition={pulseTransition}
+        >
           Loading...
-        </span>
+        </motion.span>
       </div>
     </div>
   );
