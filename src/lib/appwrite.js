@@ -1,4 +1,4 @@
-import { Client, Account } from "appwrite";
+import { Client, Account, OAuthProvider, ID } from "appwrite";
 
 /**
  * Service class for Appwrite client configuration and management
@@ -52,4 +52,4 @@ const appwriteService = AppwriteService.getInstance();
 export const client = appwriteService.client;
 /** @type {Account} */
 export const account = appwriteService.account;
-export { ID } from "appwrite";
+export { ID, OAuthProvider };

@@ -1,4 +1,12 @@
-import { account, ID, client } from "./appwrite";
+import { account, ID, client, OAuthProvider } from "./appwrite";
+
+import { toast } from "sonner";
+
+const authProviders = {
+  github: OAuthProvider.Github,
+  discord: OAuthProvider.Discord,
+  google: OAuthProvider.Google,
+};
 
 /**
  * Signs up a new user with email and password
@@ -14,7 +22,9 @@ async function signup(email, password, name) {
     const user = await loginUser(email, password);
     return user;
   } catch (error) {
-    console.log("Signup failed: " + error.message);
+    console.log(error);
+    toast.error("Signup failed!");
+    return null;
   }
 }
 
@@ -31,7 +41,28 @@ async function loginUser(email, password) {
     const user = await account.get();
     return user;
   } catch (error) {
-    console.log("Login failed: " + error.message);
+    console.log(error);
+    toast.error("Login failed!");
+    return null;
+  }
+}
+
+async function loginViaOAuth(provider) {
+  const authProvider = authProviders[provider];
+  if (!authProvider) {
+    throw new Error("Invalid provider");
+  }
+
+  try {
+    await account.createOAuth2Session(
+      authProvider, // provider
+      "http://localhost:5174/", // redirect here on success
+      "http://localhost:5174/" // redirect here on failure
+    );
+  } catch (error) {
+    console.log(error);
+    toast.error(`Login via ${provider.toUpperCase()} failed!`);
+    return null;
   }
 }
 
@@ -46,7 +77,9 @@ async function loginAnonymously() {
     const user = await account.get();
     return user;
   } catch (error) {
-    console.log("Anonymous login failed: " + error.message);
+    console.log(error);
+    toast.error("Anonymous login failed!");
+    return null;
   }
 }
 
@@ -67,9 +100,9 @@ async function getUser() {
     const user = await account.get();
     return user;
   } catch (error) {
-    console.log("User not found", error);
+    console.log(error);
     return null;
   }
 }
 
-export { signup, loginUser, loginAnonymously, logout, getUser };
+export { signup, loginUser, loginAnonymously, loginViaOAuth, logout, getUser };

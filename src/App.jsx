@@ -1,14 +1,14 @@
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { GithubIcon } from "lucide-react";
 
-import Loader from "./components/Loader";
-import LoginDialog from "./components/Login-Dialog";
-import { Button } from "./components/Button";
-import { Navbar } from "./components/Navbar";
-import { BackgroundUIContainer } from "./components/BackgroundUIContainer";
-import { NumberTicker } from "./components/NumberTicker";
-
-import { localStorage } from "./lib/storage";
+import Loader from "@/components/Loader";
+import LoginDialog from "@/components/Login-Dialog";
+import { Button } from "@/components/Button";
+import { Navbar } from "@/components/Navbar";
+import { BackgroundUIContainer } from "@/components/BackgroundUIContainer";
+import { NumberTicker } from "@/components/NumberTicker";
+import { Progress } from "@/components/Progress";
+import { Toaster } from "@/components/ui/sonner";
 
 import {
   signup,
@@ -16,19 +16,19 @@ import {
   loginAnonymously,
   logout,
   getUser,
-} from "./lib/auth";
+} from "@/lib/auth";
 
-function App() {
+export default function App() {
   const [count, setCount] = useState(0);
   const [deleted, setDeleted] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [isPageLoading, setIsPageLoading] = useState(false);
+  const [canClick, setCanClick] = useState(true);
+  const [cooldownProgress, setCooldownProgress] = useState(100);
 
   useEffect(() => {
     getAndSetUserData();
-    return () => {
-      setLoggedInUser(null);
-    };
+    return () => setLoggedInUser(null);
   }, []);
 
   const getAndSetUserData = async () => {
@@ -37,7 +37,7 @@ function App() {
     if (user) {
       setLoggedInUser(user);
     }
-    setIsPageLoading(false);
+    setTimeout(() => setIsPageLoading(false), 1000);
   };
 
   const handleLogout = async () => {
@@ -48,46 +48,123 @@ function App() {
   };
 
   const handleClick = () => {
+    if (!canClick) return;
+
+    // Update count
     const newCount = count + 1;
     setCount(newCount);
     if (newCount >= 1000000) {
       setDeleted(true);
     }
+
+    // Handle cooldown
+    setCanClick(false);
+    setCooldownProgress(0);
+
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min((elapsed / 1000) * 100, 100);
+      setCooldownProgress(progress);
+
+      if (progress >= 100) {
+        clearInterval(interval);
+        setCanClick(true);
+      }
+    }, 10);
+
+    setTimeout(() => {
+      clearInterval(interval);
+      setCanClick(true);
+      setCooldownProgress(100);
+    }, 1000);
   };
 
   if (isPageLoading) {
-    return <Loader />;
+    return (
+      <PageLayout>
+        <div className="text-xl flex flex-col items-center gap-2">
+          <Loader />
+        </div>
+      </PageLayout>
+    );
   }
 
   if (deleted) {
     return (
-      <div className="dark h-screen w-screen flex items-center justify-center bg-destructive animate-in fade-in duration-500 dark">
-        <h1 className="text-4xl font-bold text-destructive-foreground">
+      <PageLayout>
+        <h2 className="text-4xl font-bold text-destructive-foreground">
           Site has been deleted
-        </h1>
-      </div>
+        </h2>
+      </PageLayout>
     );
   }
 
   if (!loggedInUser) {
-    return <LoginDialog setLoggedInUser={setLoggedInUser} />;
+    return (
+      <PageLayout>
+        <CounterDisplay count={count} />
+        <LoginDialog setLoggedInUser={setLoggedInUser} />
+      </PageLayout>
+    );
   }
 
   return (
     <BackgroundUIContainer>
-      <Navbar />
+      <Navbar onLogout={handleLogout} />
       <div className="flex-1 flex flex-col items-center justify-center gap-8">
         <h1 className="text-4xl font-bold">Click to Delete</h1>
-        <div className="text-xl flex flex-col items-center gap-2">
-          <div>Current count:</div>
-          <NumberTicker value={count} />
+        <div className="flex flex-col items-center gap-4">
+          <CounterDisplay count={count} />
+          <ClickControls
+            cooldownProgress={cooldownProgress}
+            canClick={canClick}
+            onButtonClick={handleClick}
+          />
         </div>
-        <Button onClick={handleClick} size="lg" className="text-lg">
-          Click me
-        </Button>
       </div>
     </BackgroundUIContainer>
   );
 }
 
-export default App;
+// Layout component for consistent page structure
+const PageLayout = ({ children }) => (
+  <BackgroundUIContainer>
+    <Navbar />
+    <div className="flex-1 flex flex-col items-center justify-center gap-8">
+      <h1 className="text-4xl font-bold">Click to Delete</h1>
+      {children}
+    </div>
+    <Toaster />
+  </BackgroundUIContainer>
+);
+
+// Component for the counter display
+const CounterDisplay = ({ count }) => (
+  <div className="text-xl flex flex-col items-center gap-2">
+    <div>Current count:</div>
+    <NumberTicker value={count} />
+  </div>
+);
+
+// Component for the click button and progress
+const ClickControls = ({ cooldownProgress, canClick, onButtonClick }) => (
+  <div className="flex w-full flex-col items-center gap-4 px-8">
+    <Progress
+      value={cooldownProgress}
+      className="w-[350px]"
+      showValue
+      valueSuffix="%"
+      barColor="bg-destructive"
+      backgroundColor="bg-destructive/20"
+    />
+    <Button
+      onClick={onButtonClick}
+      size="lg"
+      className="text-lg"
+      disabled={!canClick}
+    >
+      Click me
+    </Button>
+  </div>
+);
